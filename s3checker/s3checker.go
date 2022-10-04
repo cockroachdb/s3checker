@@ -1,10 +1,12 @@
 package s3checker
 
 import (
+	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -43,6 +45,22 @@ func Check(bucket string, auth string, keyId string, accessKey string, sessionTo
 		return fmt.Errorf("get caller identity failed: %+v", err)
 	}
 	fmt.Println(identity)
+	fmt.Println()
+
+	fmt.Println("EC2 region:")
+	ec2Region, err := GetEc2Region(sess)
+	if err != nil {
+		return fmt.Errorf("get EC2 region failed: %+v", err)
+	}
+	fmt.Println(ec2Region)
+	fmt.Println()
+
+	fmt.Println("Bucket region:")
+	bucketRegion, err := GetBucketRegion(sess, bucket)
+	if err != nil {
+		return fmt.Errorf("get bucket region failed: %+v", err)
+	}
+	fmt.Println(bucketRegion)
 	fmt.Println()
 
 	fmt.Println("S3 Operations:")
@@ -123,11 +141,12 @@ func GetCallerIdentity(sess *session.Session) (*sts.GetCallerIdentityOutput, err
 
 // GetSession see https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html
 func GetSession(keyId string, auth string, accessKey string, sessionToken string, region string, debug bool) (*session.Session, error) {
+	logLevelType := aws.LogOff
+	if debug {
+		logLevelType = aws.LogDebugWithSigning | aws.LogDebugWithHTTPBody
+	}
+
 	if auth == "implicit" { // use implicit auth
-		logLevelType := aws.LogOff
-		if debug {
-			logLevelType = aws.LogDebugWithRequestErrors
-		}
 		return session.NewSessionWithOptions(session.Options{
 			SharedConfigState: session.SharedConfigEnable,
 			Config:            aws.Config{Region: aws.String(region), LogLevel: aws.LogLevel(logLevelType)},
@@ -136,8 +155,30 @@ func GetSession(keyId string, auth string, accessKey string, sessionToken string
 		return session.NewSession(&aws.Config{
 			Region:      aws.String(region),
 			Credentials: credentials.NewStaticCredentials(keyId, accessKey, sessionToken),
+			LogLevel:    aws.LogLevel(logLevelType),
 		})
 	}
+}
+
+func GetEc2Region(sess *session.Session) (string, error) {
+	svc := ec2metadata.New(sess)
+	if !svc.Available() {
+		return "Not an EC2 instance", nil
+	}
+
+	return svc.Region()
+}
+
+func GetBucketRegion(sess *session.Session, bucket string) (string, error) {
+
+	region, err := s3manager.GetBucketRegion(context.Background(), sess, bucket, "us-east-1")
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NotFound" {
+			return "", aerr
+		}
+		return "", err
+	}
+	return region, nil
 }
 
 // CanListObjects List objects
