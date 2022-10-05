@@ -23,6 +23,7 @@ func CheckV2(ctx context.Context, bucket string, auth string, keyId string, acce
 	if !debug {
 		cfg.ClientLogMode.ClearRequestWithBody()
 		cfg.ClientLogMode.ClearSigning()
+		cfg.ClientLogMode.ClearResponseWithBody()
 	}
 
 	// Get caller identity

@@ -62,7 +62,7 @@ func Check(bucket string, auth string, keyId string, accessKey string, sessionTo
 	PrintEnvVars()
 
 	fmt.Println("Caller identity:")
-	fmt.Println(identity.Arn)
+	fmt.Println(identity)
 	fmt.Println()
 
 	fmt.Println("EC2 region:")
