@@ -5,6 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"context"
 	"github.com/cockroachdb/s3checker/s3checker"
 	"github.com/spf13/viper"
 	"os"
@@ -29,9 +30,19 @@ It uses the same S3 library that CockroachDB uses.`,
 		sessionToken := viper.GetString("session-token")
 		region := viper.GetString("region")
 		debug := viper.GetBool("debug")
-		err := s3checker.Check(bucket, auth, keyId, accessKey, sessionToken, region, debug)
-		if err != nil {
-			panic(err)
+		version := viper.GetInt("sdk-version")
+
+		ctx := context.Background()
+		if version == 2 {
+			err := s3checker.CheckV2(ctx, bucket, auth, keyId, accessKey, sessionToken, region, debug)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			err := s3checker.Check(bucket, auth, keyId, accessKey, sessionToken, region, debug)
+			if err != nil {
+				panic(err)
+			}
 		}
 	},
 }
@@ -58,6 +69,7 @@ func init() {
 	rootCmd.PersistentFlags().String("session-token", "", "AWS session token, when using explicit auth and STS temporary credentials")
 	rootCmd.PersistentFlags().String("region", "", "AWS region, optional")
 	rootCmd.PersistentFlags().Bool("debug", false, "Include debug output for request errors")
+	rootCmd.PersistentFlags().Int("sdk-version", 1, "AWS SDK version, 1 or 2 (default 1)")
 
 	rootCmd.MarkPersistentFlagRequired("bucket")
 	rootCmd.MarkFlagsRequiredTogether("key-id", "access-key")
