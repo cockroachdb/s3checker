@@ -68,8 +68,8 @@ func init() {
 	rootCmd.PersistentFlags().String("access-key", "", "AWS secret access key, when using explicit auth")
 	rootCmd.PersistentFlags().String("session-token", "", "AWS session token, when using explicit auth and STS temporary credentials")
 	rootCmd.PersistentFlags().String("region", "", "AWS region, optional")
-	rootCmd.PersistentFlags().Bool("debug", false, "Include debug output for request errors")
-	rootCmd.PersistentFlags().Int("sdk-version", 1, "AWS SDK version, 1 or 2 (default 1)")
+	rootCmd.PersistentFlags().Bool("debug", false, "Include debug output for requests, responses and signing details")
+	rootCmd.PersistentFlags().Int("sdk-version", 1, "AWS SDK version, 1 or 2")
 
 	rootCmd.MarkPersistentFlagRequired("bucket")
 	rootCmd.MarkFlagsRequiredTogether("key-id", "access-key")

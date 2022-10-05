@@ -6,9 +6,12 @@ and enterprise changefeeds (when s3 storage is used).
 These requirements are outline in the 
 [official documentation](https://www.cockroachlabs.com/docs/stable/use-cloud-storage-for-bulk-operations.html#storage-permissions).
 
-`s3checker` uses the [AWS SDK for Go library - version1](https://docs.aws.amazon.com/sdk-for-go/index.html) which
+`s3checker` uses the [AWS SDK for Go library - version1](https://docs.aws.amazon.com/sdk-for-go/index.html) by default, which
 is the same library that CockroachDB uses (at least as of the current version 22.1). This makes it easier to
-troubleshoot s3 access issues instead of attempting to run the various bulk operations in CockroachDB.
+troubleshoot s3 access issues instead of attempting to run the various bulk operations in CockroachDB. It can also be
+run with version 2 of the SDK.
+
+It also outputs environment variables that use the prefix `AWS_` or include `proxy` or `PROXY`.
 
 ## Usage
 
@@ -20,6 +23,11 @@ from the local environment or via EC2 instance metadata when using IAM roles for
 the `session-token` must also be included.
 
 The `--bucket` flag is required.
+
+The `--region` flag is typically required if running from an EC2 instance that is in a different region than the s3 bucket.
+
+By default, `s3checker` runs with the AWS SDK for Go version 1, which is currently used in CockroachDB. To run with SDK version 2,
+use the `--sdk-version 2` flag.
 
 ```
 Usage:
@@ -33,6 +41,7 @@ Flags:
   -h, --help                   help for s3checker
       --key-id string          AWS access key ID, when using explicit auth
       --region string          AWS region, optional
+      --sdk-version int        AWS SDK version, 1 or 2 (default 1)
       --session-token string   AWS session token, when using explicit auth and STS temporary credentials
   -t, --toggle                 Help message for toggle
 ```
@@ -71,6 +80,12 @@ are supported with the supported operations. If any errors, occur, those will al
 For example, the following output indicates that all bulk operations are supported:
 
 ```
+Environment variables that contain 'proxy' or 'PROXY':
+  myproxy=test
+
+Environment variables that are prefixed with 'AWS_':
+  AWS_BLAH=test
+
 Caller identity:
 {
   Account: "541263489771",
