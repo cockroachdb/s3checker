@@ -14,9 +14,9 @@ import (
 
 func CheckV2(ctx context.Context, bucket string, auth string, keyId string, accessKey string, sessionToken string, region string, debug bool) error {
 
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region), config.WithClientLogMode(aws.LogRequestWithBody|aws.LogSigning|aws.LogResponseWithBody))
-	if err != nil {
-		return err
+	cfg, loadDefaultConfigErr := config.LoadDefaultConfig(ctx, config.WithRegion(region), config.WithClientLogMode(aws.LogRequestWithBody|aws.LogSigning|aws.LogResponseWithBody))
+	if loadDefaultConfigErr != nil {
+		return loadDefaultConfigErr
 	}
 
 	// TODO: figure out how to do this w/o having to set
@@ -27,33 +27,33 @@ func CheckV2(ctx context.Context, bucket string, auth string, keyId string, acce
 	}
 
 	// Get caller identity
-	identity, err := GetCallerIdentityV2(ctx, cfg)
-	if err != nil {
-		return fmt.Errorf("get caller identity failed: %+v", err)
+	identity, getCallerIdentityErr := GetCallerIdentityV2(ctx, cfg)
+	if getCallerIdentityErr != nil {
+		return fmt.Errorf("get caller identity failed: %+v", getCallerIdentityErr)
 	}
 
 	// Get EC2 region
-	ec2RegionResult, err := GetEc2RegionV2(ctx, cfg)
+	ec2RegionResult, getEc2RegionErr := GetEc2RegionV2(ctx, cfg)
 	var ec2Region string
-	if err != nil {
-		ec2Region = fmt.Sprintf("Does not appear to be an EC2 instance: %+v\n", err)
+	if getEc2RegionErr != nil {
+		ec2Region = fmt.Sprintf("Does not appear to be an EC2 instance: %+v\n", getEc2RegionErr)
 	} else {
 		ec2Region = ec2RegionResult.Region
 	}
 
 	// Get bucket region
-	bucketRegion, err := GetBucketRegionV2(ctx, cfg, bucket)
-	if err != nil {
-		return fmt.Errorf("get bucket region failed: %+v", err)
+	bucketRegion, getBucketRegionErr := GetBucketRegionV2(ctx, cfg, bucket)
+	if getBucketRegionErr != nil {
+		return fmt.Errorf("get bucket region failed: %+v", getBucketRegionErr)
 	}
 
-	listObjects, err := CanListObjectsV2(ctx, cfg, bucket)
-	putObject, err := CanPutObjectV2(ctx, cfg, bucket)
-	getObject, err := CanGetObjectV2(ctx, cfg, bucket)
+	listObjects, canListObjectsErr := CanListObjectsV2(ctx, cfg, bucket)
+	putObject, canPutObjectErr := CanPutObjectV2(ctx, cfg, bucket)
+	getObject, canGetObjectErr := CanGetObjectV2(ctx, cfg, bucket)
 
-	err = cleanupLocalTestFiles()
-	if err != nil {
-		return fmt.Errorf("warning: failed to cleanup test files: %+v", err)
+	cleanupFilesErr := cleanupLocalTestFiles()
+	if cleanupFilesErr != nil {
+		return fmt.Errorf("warning: failed to cleanup test files: %+v", cleanupFilesErr)
 	}
 
 	PrintEnvVars()
@@ -74,9 +74,9 @@ func CheckV2(ctx context.Context, bucket string, auth string, keyId string, acce
 	fmt.Println()
 
 	fmt.Println("S3 Operations:")
-	PrintResult(listObjects, err, "list objects")
-	PrintResult(putObject, err, "put object")
-	PrintResult(getObject, err, "get object")
+	PrintResult(listObjects, canListObjectsErr, "list objects")
+	PrintResult(putObject, canPutObjectErr, "put object")
+	PrintResult(getObject, canGetObjectErr, "get object")
 
 	fmt.Println("")
 	fmt.Println("Access sufficient for the following CockroachDB capabilities:")

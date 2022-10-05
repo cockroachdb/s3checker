@@ -30,33 +30,33 @@ const (
 
 func Check(bucket string, auth string, keyId string, accessKey string, sessionToken string, region string, debug bool) error {
 
-	sess, err := GetSession(keyId, auth, accessKey, sessionToken, region, debug)
-	if err != nil {
-		return fmt.Errorf("get session failed: %+v", err)
+	sess, getSessionErr := GetSession(keyId, auth, accessKey, sessionToken, region, debug)
+	if getSessionErr != nil {
+		return fmt.Errorf("get session failed: %+v", getSessionErr)
 	}
 
-	identity, err := GetCallerIdentity(sess)
-	if err != nil {
-		return fmt.Errorf("get caller identity failed: %+v", err)
+	identity, getCallerIdentityErr := GetCallerIdentity(sess)
+	if getCallerIdentityErr != nil {
+		return fmt.Errorf("get caller identity failed: %+v", getCallerIdentityErr)
 	}
 
-	ec2Region, err := GetEc2Region(sess)
-	if err != nil {
-		ec2Region = fmt.Sprintf("get EC2 region failed: %+v", err)
+	ec2Region, getEc2RegionErr := GetEc2Region(sess)
+	if getEc2RegionErr != nil {
+		ec2Region = fmt.Sprintf("get EC2 region failed: %+v", getEc2RegionErr)
 	}
 
-	bucketRegion, err := GetBucketRegion(sess, bucket)
-	if err != nil {
-		return fmt.Errorf("get bucket region failed: %+v", err)
+	bucketRegion, getBucketRegionErr := GetBucketRegion(sess, bucket)
+	if getBucketRegionErr != nil {
+		return fmt.Errorf("get bucket region failed: %+v", getBucketRegionErr)
 	}
 
-	listObjects, err := CanListObjects(sess, bucket)
-	putObject, err := CanPutObject(sess, bucket)
-	getObject, err := CanGetObject(sess, bucket)
+	listObjects, canListObjectsErr := CanListObjects(sess, bucket)
+	putObject, canPutObjectErr := CanPutObject(sess, bucket)
+	getObject, canGetObjectErr := CanGetObject(sess, bucket)
 
-	err = cleanupLocalTestFiles()
-	if err != nil {
-		return fmt.Errorf("warning: failed to cleanup test files: %+v", err)
+	cleanupLocalTestFilesErr := cleanupLocalTestFiles()
+	if cleanupLocalTestFilesErr != nil {
+		return fmt.Errorf("warning: failed to cleanup test files: %+v", cleanupLocalTestFilesErr)
 	}
 
 	PrintEnvVars()
@@ -74,9 +74,9 @@ func Check(bucket string, auth string, keyId string, accessKey string, sessionTo
 	fmt.Println()
 
 	fmt.Println("S3 Operations:")
-	PrintResult(listObjects, err, "list objects")
-	PrintResult(putObject, err, "put object")
-	PrintResult(getObject, err, "get object")
+	PrintResult(listObjects, canListObjectsErr, "list objects")
+	PrintResult(putObject, canPutObjectErr, "put object")
+	PrintResult(getObject, canGetObjectErr, "get object")
 
 	fmt.Println("")
 	fmt.Println("Access sufficient for the following CockroachDB capabilities:")
