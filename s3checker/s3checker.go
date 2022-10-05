@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -34,50 +35,48 @@ func Check(bucket string, auth string, keyId string, accessKey string, sessionTo
 		return fmt.Errorf("get session failed: %+v", err)
 	}
 
-	/*
-		listBuckets, err := CanListBuckets(sess)
-		PrintResult(listBuckets, err, "list buckets")
-	*/
-
-	fmt.Println("Caller identity:")
 	identity, err := GetCallerIdentity(sess)
 	if err != nil {
 		return fmt.Errorf("get caller identity failed: %+v", err)
 	}
-	fmt.Println(identity)
-	fmt.Println()
 
-	fmt.Println("EC2 region:")
 	ec2Region, err := GetEc2Region(sess)
 	if err != nil {
-		return fmt.Errorf("get EC2 region failed: %+v", err)
+		ec2Region = fmt.Sprintf("get EC2 region failed: %+v", err)
 	}
-	fmt.Println(ec2Region)
-	fmt.Println()
 
-	fmt.Println("Bucket region:")
 	bucketRegion, err := GetBucketRegion(sess, bucket)
 	if err != nil {
 		return fmt.Errorf("get bucket region failed: %+v", err)
 	}
+
+	listObjects, err := CanListObjects(sess, bucket)
+	putObject, err := CanPutObject(sess, bucket)
+	getObject, err := CanGetObject(sess, bucket)
+
+	err = cleanupLocalTestFiles()
+	if err != nil {
+		return fmt.Errorf("warning: failed to cleanup test files: %+v", err)
+	}
+
+	PrintEnvVars()
+
+	fmt.Println("Caller identity:")
+	fmt.Println(identity.Arn)
+	fmt.Println()
+
+	fmt.Println("EC2 region:")
+	fmt.Println(ec2Region)
+	fmt.Println()
+
+	fmt.Println("Bucket region:")
 	fmt.Println(bucketRegion)
 	fmt.Println()
 
 	fmt.Println("S3 Operations:")
-
-	listObjects, err := CanListObjects(sess, bucket)
 	PrintResult(listObjects, err, "list objects")
-
-	putObject, err := CanPutObject(sess, bucket)
 	PrintResult(putObject, err, "put object")
-
-	getObject, err := CanGetObject(sess, bucket)
 	PrintResult(getObject, err, "get object")
-
-	err = cleanupLocalTestFiles()
-	if err != nil {
-		return fmt.Errorf("Warning: failed to cleanup test files: %+v", err)
-	}
 
 	fmt.Println("")
 	fmt.Println("Access sufficient for the following CockroachDB capabilities:")
@@ -89,6 +88,45 @@ func Check(bucket string, auth string, keyId string, accessKey string, sessionTo
 
 	return nil
 
+}
+
+func PrintEnvVars() {
+	proxyEnvVars := make([][]string, 0)
+	for _, e := range os.Environ() {
+		pair := strings.SplitN(e, "=", 2)
+		if strings.Contains(strings.ToLower(pair[0]), "proxy") {
+
+			proxyEnvVars = append(proxyEnvVars, pair)
+		}
+	}
+
+	if len(proxyEnvVars) == 0 {
+		fmt.Println("No environment variables that contain 'proxy' or 'PROXY'")
+	} else {
+		fmt.Println("Environment variables that contain 'proxy' or 'PROXY':")
+		for _, pair := range proxyEnvVars {
+			fmt.Printf("  %s=%s\n", pair[0], pair[1])
+		}
+	}
+	fmt.Println()
+
+	awsEnvVars := make([][]string, 0)
+	for _, e := range os.Environ() {
+		pair := strings.SplitN(e, "=", 2)
+		if strings.HasPrefix(pair[0], "AWS_") {
+			awsEnvVars = append(awsEnvVars, pair)
+		}
+	}
+
+	if len(awsEnvVars) == 0 {
+		fmt.Println("No AWS_ prefixed environment variables")
+	} else {
+		fmt.Println("Environment variables that are prefixed with 'AWS_':")
+		for _, pair := range awsEnvVars {
+			fmt.Printf("  %s=%s\n", pair[0], pair[1])
+		}
+	}
+	fmt.Println()
 }
 
 func PrintCapability(has bool, capability string) {

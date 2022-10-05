@@ -10,12 +10,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"os"
-	"strings"
 )
 
 func CheckV2(ctx context.Context, bucket string, auth string, keyId string, accessKey string, sessionToken string, region string, debug bool) error {
 
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region), config.WithClientLogMode(aws.LogRequestWithBody|aws.LogSigning))
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region), config.WithClientLogMode(aws.LogRequestWithBody|aws.LogSigning|aws.LogResponseWithBody))
 	if err != nil {
 		return err
 	}
@@ -56,42 +55,7 @@ func CheckV2(ctx context.Context, bucket string, auth string, keyId string, acce
 		return fmt.Errorf("warning: failed to cleanup test files: %+v", err)
 	}
 
-	proxyEnvVars := make([][]string, 0)
-	for _, e := range os.Environ() {
-		pair := strings.SplitN(e, "=", 2)
-		if strings.Contains(strings.ToLower(pair[0]), "proxy") {
-
-			proxyEnvVars = append(proxyEnvVars, pair)
-		}
-	}
-
-	if len(proxyEnvVars) == 0 {
-		fmt.Println("No environment variables that contain 'proxy' or 'PROXY'")
-	} else {
-		fmt.Println("Environment variables that contain 'proxy' or 'PROXY':")
-		for _, pair := range proxyEnvVars {
-			fmt.Printf("  %s=%s\n", pair[0], pair[1])
-		}
-	}
-	fmt.Println()
-
-	awsEnvVars := make([][]string, 0)
-	for _, e := range os.Environ() {
-		pair := strings.SplitN(e, "=", 2)
-		if strings.HasPrefix(pair[0], "AWS_") {
-			awsEnvVars = append(awsEnvVars, pair)
-		}
-	}
-
-	if len(awsEnvVars) == 0 {
-		fmt.Println("No AWS_ prefixed environment variables")
-	} else {
-		fmt.Println("Environment variables that are prefixed with 'AWS_':")
-		for _, pair := range awsEnvVars {
-			fmt.Printf("  %s=%s\n", pair[0], pair[1])
-		}
-	}
-	fmt.Println()
+	PrintEnvVars()
 
 	// Output caller identity
 	fmt.Println("Caller identity:")
