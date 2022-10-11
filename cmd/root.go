@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"github.com/cockroachdb/s3checker/s3checker"
 	"github.com/spf13/viper"
 	"os"
@@ -13,10 +14,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const VERSION = "0.4.0"
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "s3checker",
-	Version: "0.3.0",
+	Version: VERSION,
 	Short:   "Check for S3 bucket access and privileges",
 	Long: `s3checker checks for S3 bucket access and privileges required by CockroachDB cloud operations.
 It uses the same S3 library that CockroachDB uses.`,
@@ -30,10 +33,11 @@ It uses the same S3 library that CockroachDB uses.`,
 		sessionToken := viper.GetString("session-token")
 		region := viper.GetString("region")
 		debug := viper.GetBool("debug")
-		version := viper.GetInt("sdk-version")
+		sdkversion := viper.GetInt("sdk-version")
 
+		fmt.Printf("s3checker verison: %s\n", VERSION)
 		ctx := context.Background()
-		if version == 2 {
+		if sdkversion == 2 {
 			err := s3checker.CheckV2(ctx, bucket, auth, keyId, accessKey, sessionToken, region, debug)
 			if err != nil {
 				panic(err)
