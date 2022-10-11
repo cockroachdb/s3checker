@@ -16,7 +16,7 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "s3checker",
-	Version: "0.1.0",
+	Version: "0.3.0",
 	Short:   "Check for S3 bucket access and privileges",
 	Long: `s3checker checks for S3 bucket access and privileges required by CockroachDB cloud operations.
 It uses the same S3 library that CockroachDB uses.`,
